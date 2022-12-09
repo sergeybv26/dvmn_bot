@@ -9,6 +9,7 @@ env.read_env()
 
 API_TOKEN = env('API_TOKEN')
 BOT_TOKEN = env('BOT_TOKEN')
+CHAT_ID = env('CHAT_ID')
 
 headers = {
     'Authorization': f'Token {API_TOKEN}'
@@ -46,8 +47,6 @@ def bot_handler(response=None):
     :param response: Ответ от API Devman
     """
     bot = telegram.Bot(token=BOT_TOKEN)
-    updates = bot.get_updates()
-    chat_id = updates[-1].message.chat_id
     if response:
         response = response.json()
         for attempt in response['new_attempts']:
@@ -60,7 +59,7 @@ def bot_handler(response=None):
             msg = f'У вас проверили работу "{title}". \n' \
                   f'Ссылка на урок: {link} \n' \
                   f'{result_msg}'
-            bot.send_message(text=msg, chat_id=chat_id)
+            bot.send_message(text=msg, chat_id=CHAT_ID)
 
 
 def get_long_pooling():
