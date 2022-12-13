@@ -6,11 +6,12 @@ import telegram
 from environs import Env
 
 
-def send_bot_msg(_response, bot_token):
+def send_bot_msg(_response, bot_token, chat_id):
     """
     Реализует работу с телеграм-ботом. Формирует и отправляет сообщение о состоянии проверки задания.
     :param _response: Ответ от API Devman
     :param bot_token: Токен API Телеграм
+    :param chat_id: ID чата Телеграм
     """
     bot = telegram.Bot(token=bot_token)
     if _response.get('new_attempts'):
@@ -25,7 +26,7 @@ def send_bot_msg(_response, bot_token):
             Ссылка на урок: {link} 
             {result_msg}''')
 
-            bot.send_message(text=msg, chat_id=CHAT_ID)
+            bot.send_message(text=msg, chat_id=chat_id)
 
 
 if __name__ == '__main__':
@@ -59,5 +60,5 @@ if __name__ == '__main__':
         if review_result['status'] == 'timeout':
             timestamp = review_result['timestamp_to_request']
         else:
-            send_bot_msg(review_result, BOT_TOKEN)
+            send_bot_msg(review_result, BOT_TOKEN, CHAT_ID)
             timestamp = review_result['new_attempts'][0]['timestamp']
