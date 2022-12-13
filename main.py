@@ -1,50 +1,31 @@
+import time
+from textwrap import dedent
+
 import requests
 import telegram
 from environs import Env
 
 
-def send_bot_msg(response):
+def send_bot_msg(_response, bot_token):
     """
     Реализует работу с телеграм-ботом. Формирует и отправляет сообщение о состоянии проверки задания.
-    :param response: Ответ от API Devman
+    :param _response: Ответ от API Devman
+    :param bot_token: Токен API Телеграм
     """
-    bot = telegram.Bot(token=BOT_TOKEN)
-    if response.get('new_attempts'):
-        for attempt in response['new_attempts']:
+    bot = telegram.Bot(token=bot_token)
+    if _response.get('new_attempts'):
+        for attempt in _response['new_attempts']:
             if attempt['is_negative']:
                 result_msg = 'К сожалению, в работе нашлись ошибки.'
             else:
                 result_msg = 'Преподавателю все понравилось, можно приступать к следующему уроку!'
             title = attempt['lesson_title']
             link = attempt['lesson_url']
-            msg = f'У вас проверили работу "{title}". \n' \
-                  f'Ссылка на урок: {link} \n' \
-                  f'{result_msg}'
+            msg = dedent(f'''У вас проверили работу "{title}". 
+            Ссылка на урок: {link} 
+            {result_msg}''')
+
             bot.send_message(text=msg, chat_id=CHAT_ID)
-
-
-def get_long_pooling(url, _headers, _timestamp=None):
-    """
-    Получает список проверок через long_pooling и отправляет в бот
-    :param url: str - url на который необходимо выполнить get запрос
-    :param _headers: заголовки get запроса
-    :param _timestamp: метка времени
-    :return: dict - результат запроса
-    """
-
-    try:
-        response = requests.get(url, headers=_headers, timeout=95, params={'timestamp': _timestamp})
-        response.raise_for_status()
-        _review_result = response.json()
-
-        if 'error' in _review_result:
-            raise requests.exceptions.HTTPError(_review_result['error'])
-
-        return _review_result
-    except requests.exceptions.ReadTimeout as err:
-        print(err)
-    except requests.exceptions.ConnectionError:
-        print('Ошибка подключения!')
 
 
 if __name__ == '__main__':
@@ -63,8 +44,20 @@ if __name__ == '__main__':
     timestamp = None
 
     while True:
-        review_result = get_long_pooling(URL, HEADERS, timestamp)
+
+        try:
+            response = requests.get(URL, headers=HEADERS, timeout=95, params={'timestamp': timestamp})
+            response.raise_for_status()
+            review_result = response.json()
+        except requests.exceptions.ReadTimeout:
+            continue
+        except requests.exceptions.ConnectionError:
+            print('Ошибка подключения!')
+            time.sleep(30)
+            continue
+
         if review_result['status'] == 'timeout':
             timestamp = review_result['timestamp_to_request']
         else:
-            send_bot_msg(review_result)
+            send_bot_msg(review_result, BOT_TOKEN)
+            timestamp = review_result['new_attempts'][0]['timestamp']
