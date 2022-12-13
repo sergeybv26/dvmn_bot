@@ -64,7 +64,6 @@ if __name__ == '__main__':
 
     while True:
         review_result = get_long_pooling(URL, HEADERS, timestamp)
-        print(review_result)
         if review_result['status'] == 'timeout':
             timestamp = review_result['timestamp_to_request']
         else:
