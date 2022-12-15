@@ -5,6 +5,20 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 
+
+class TelegramLogsHandler(logging.Handler):
+    """Обработчик логов. Отправляет логи в Телеграм"""
+
+    def __init__(self, tg_bot, chat_id):
+        super().__init__()
+        self.chat_id = chat_id
+        self.tg_bot = tg_bot
+
+    def emit(self, record) -> None:
+        log_entry = self.format(record)
+        self.tg_bot.send_message(chat_id=self.chat_id, text=log_entry)
+
+
 LOG_FORMATTER = logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s %(message)s')
 
 PATH = os.path.dirname(os.path.abspath(__file__))
