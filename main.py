@@ -1,9 +1,12 @@
+import logging
 import time
 from textwrap import dedent
 
 import requests
 import telegram
 from environs import Env
+
+import log.logger
 
 
 def send_bot_msg(_response, bot_token, chat_id):
@@ -30,7 +33,8 @@ def send_bot_msg(_response, bot_token, chat_id):
 
 
 if __name__ == '__main__':
-    print('Телеграм-бот запущен!')
+    LOGGER = logging.getLogger('bot')
+    LOGGER.info('Телеграм-бот запущен!')
 
     env = Env()
     env.read_env()
@@ -53,7 +57,7 @@ if __name__ == '__main__':
         except requests.exceptions.ReadTimeout:
             continue
         except requests.exceptions.ConnectionError:
-            print('Ошибка подключения!')
+            LOGGER.error('Ошибка подключения!')
             time.sleep(30)
             continue
 
@@ -61,4 +65,5 @@ if __name__ == '__main__':
             timestamp = review_result['timestamp_to_request']
         else:
             send_bot_msg(review_result, BOT_TOKEN, CHAT_ID)
+            LOGGER.debug(f'Сообщение об изменении статуса проверки: {review_result}')
             timestamp = review_result['new_attempts'][0]['timestamp']
