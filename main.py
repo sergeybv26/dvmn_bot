@@ -9,6 +9,8 @@ import requests
 import telegram
 from environs import Env
 
+LOGGER = logging.getLogger('bot')
+
 
 class TelegramLogsHandler(logging.Handler):
     """Обработчик логов. Отправляет логи в Телеграм"""
@@ -46,38 +48,37 @@ def send_bot_msg(_response, bot_token, chat_id):
             bot.send_message(text=msg, chat_id=chat_id)
 
 
-if __name__ == '__main__':
+def main():
     env = Env()
     env.read_env()
-    API_TOKEN = env('API_TOKEN')
-    BOT_TOKEN = env('BOT_TOKEN')
-    CHAT_ID = env('CHAT_ID')
-    URL = 'https://dvmn.org/api/long_polling/'
-    HEADERS = {
-        'Authorization': f'Token {API_TOKEN}'
+    api_token = env('API_TOKEN')
+    bot_token = env('BOT_TOKEN')
+    chat_id = env('CHAT_ID')
+    url = 'https://dvmn.org/api/long_polling/'
+    headers = {
+        'Authorization': f'Token {api_token}'
     }
-    ADM_BOT_TOKEN = env('ADM_BOT_TOKEN')
+    adm_bot_token = env('ADM_BOT_TOKEN')
 
-    adm_bot = telegram.Bot(token=ADM_BOT_TOKEN)
+    adm_bot = telegram.Bot(token=adm_bot_token)
 
-    LOG_FORMATTER = logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s %(message)s')
+    log_formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s %(message)s')
 
-    PATH = os.path.dirname(os.path.abspath(__file__))
-    PATH = os.path.join(PATH, 'bot-app.log')
+    path = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(path, 'bot-app.log')
 
-    STREAM_HANDLER = logging.StreamHandler(sys.stdout)
-    STREAM_HANDLER.setFormatter(LOG_FORMATTER)
-    STREAM_HANDLER.setLevel(logging.INFO)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(log_formatter)
+    stream_handler.setLevel(logging.INFO)
 
-    LOG_FILE = RotatingFileHandler(PATH, maxBytes=2000, backupCount=2, encoding='utf-8')
-    LOG_FILE.setFormatter(LOG_FORMATTER)
+    log_file = RotatingFileHandler(path, maxBytes=2000, backupCount=2, encoding='utf-8')
+    log_file.setFormatter(log_formatter)
 
-    LOG_TLG = TelegramLogsHandler(tg_bot=adm_bot, chat_id=CHAT_ID)
+    log_tlg = TelegramLogsHandler(tg_bot=adm_bot, chat_id=chat_id)
 
-    LOGGER = logging.getLogger('bot')
-    LOGGER.addHandler(STREAM_HANDLER)
-    LOGGER.addHandler(LOG_FILE)
-    LOGGER.addHandler(LOG_TLG)
+    LOGGER.addHandler(stream_handler)
+    LOGGER.addHandler(log_file)
+    LOGGER.addHandler(log_tlg)
     LOGGER.setLevel(logging.DEBUG)
 
     LOGGER.info('Телеграм-бот запущен!')
@@ -87,7 +88,7 @@ if __name__ == '__main__':
     while True:
 
         try:
-            response = requests.get(URL, headers=HEADERS, timeout=95, params={'timestamp': timestamp})
+            response = requests.get(url, headers=headers, timeout=95, params={'timestamp': timestamp})
             response.raise_for_status()
             review_result = response.json()
         except requests.exceptions.ReadTimeout:
@@ -100,6 +101,10 @@ if __name__ == '__main__':
         if review_result['status'] == 'timeout':
             timestamp = review_result['timestamp_to_request']
         else:
-            send_bot_msg(review_result, BOT_TOKEN, CHAT_ID)
+            send_bot_msg(review_result, bot_token, chat_id)
             LOGGER.debug(f'Сообщение об изменении статуса проверки: {review_result}')
             timestamp = review_result['new_attempts'][0]['timestamp']
+
+
+if __name__ == '__main__':
+    main()
